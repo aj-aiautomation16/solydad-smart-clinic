@@ -1,12 +1,11 @@
+// Config
+const N8N_WEBHOOK_URL = 'https://n8n-aiautoscheduling.onrender.com/webhook/7748ae0d-6bc1-4330-97a5-a6d13e64291f';
+
+// Generate a stable session ID for this browser session
+const SESSION_ID = 'web_' + Math.random().toString(36).slice(2) + '_' + Date.now();
+
 // Global States
 let currentView = 'home';
-let chatState = 'greeting';
-const patientData = {
-    name: '',
-    email: '',
-    service: '',
-    time: ''
-};
 
 // UI Toggles
 function toggleChat() {
@@ -14,7 +13,7 @@ function toggleChat() {
     const isVisible = chatWindow.style.display === 'flex';
     chatWindow.style.display = isVisible ? 'none' : 'flex';
 
-    if (!isVisible && chatState === 'greeting') {
+    if (!isVisible) {
         scrollToBottom();
     }
 }
@@ -22,7 +21,6 @@ function toggleChat() {
 function toggleDashboard() {
     const homeView = document.getElementById('home-view');
     const dashView = document.getElementById('dashboard-view');
-    const navLinks = document.querySelector('.nav-links');
 
     if (currentView === 'home') {
         homeView.style.display = 'none';
@@ -54,88 +52,71 @@ function addMessage(text, isAi = false) {
     msgDiv.innerText = text;
     chatBody.appendChild(msgDiv);
     scrollToBottom();
+    return msgDiv;
 }
 
-function sendMessage() {
+function showTypingIndicator() {
+    const chatBody = document.getElementById('chatBody');
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message msg-ai';
+    typingDiv.id = 'typing-indicator';
+    typingDiv.innerText = '...';
+    typingDiv.style.opacity = '0.5';
+    chatBody.appendChild(typingDiv);
+    scrollToBottom();
+}
+
+function removeTypingIndicator() {
+    const indicator = document.getElementById('typing-indicator');
+    if (indicator) indicator.remove();
+}
+
+function setInputDisabled(disabled) {
+    const input = document.getElementById('chatInput');
+    const sendBtn = document.querySelector('.chat-send');
+    if (input) input.disabled = disabled;
+    if (sendBtn) sendBtn.disabled = disabled;
+}
+
+async function sendMessage() {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
-
     if (!text) return;
 
     addMessage(text, false);
     input.value = '';
+    setInputDisabled(true);
+    showTypingIndicator();
 
-    // Simulate AI Thinking
-    setTimeout(() => {
-        processAiResponse(text);
-    }, 800);
-}
+    try {
+        const response = await fetch(N8N_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                source: 'website',
+                message: text,
+                session_id: SESSION_ID
+            })
+        });
 
-function processAiResponse(userInput) {
-    let response = "";
+        removeTypingIndicator();
 
-    switch (chatState) {
-        case 'greeting':
-            response = "Ano po ang pangalan nila? Para po mailista ko sa ating record.";
-            chatState = 'waitingForName';
-            break;
+        if (!response.ok) {
+            throw new Error('Network response was not ok: ' + response.status);
+        }
 
-        case 'waitingForName':
-            patientData.name = userInput;
-            response = `Salamat, ${patientData.name}! Ano po ang email address ninyo? Ito po ay para sa inyong appointment receipt.`;
-            chatState = 'waitingForEmail';
-            break;
+        const data = await response.json();
+        const aiReply = data.output || data.text || 'Pasensya na po, may naganap na error. Subukan ulit.';
+        addMessage(aiReply, true);
 
-        case 'waitingForEmail':
-            patientData.email = userInput;
-            response = `Got it! Anong serbisyo po ang kailangan niyo? (General Medicine, Pediatrics, OB-GYN, or Laboratory)`;
-            chatState = 'waitingForService';
-            break;
-
-        case 'waitingForService':
-            patientData.service = userInput;
-            response = "Sige po. Kailan po ninyo balak pumunta? Pwede po kaming mag-set ng slot para sa inyo bukas ng 9:00 AM. Okay po ba sa inyo?";
-            chatState = 'waitingForTime';
-            break;
-
-        case 'waitingForTime':
-            if (userInput.toLowerCase().includes('oo') || userInput.toLowerCase().includes('ok') || userInput.toLowerCase().includes('yes')) {
-                patientData.time = "Tomorrow, 09:00 AM";
-                response = "Noted po! Naka-schedule na po kayo. Makakatanggap po kayo ng confirmation email maya-maya. May iba pa po ba akong maitutulong?";
-                chatState = 'confirmed';
-                addAppointmentToDashboard(patientData);
-            } else {
-                response = "Ah, sige po. Ano po ang preferred time ninyo?";
-            }
-            break;
-
-        case 'confirmed':
-            response = "Maraming salamat po! Ingat po sa biyahe papunta dito sa Sol. Y. Dad Medical Clinic.";
-            chatState = 'end';
-            break;
-
-        default:
-            response = "Mag-message lang po uli kayo kung may kailangan pa po kayo.";
+    } catch (err) {
+        removeTypingIndicator();
+        addMessage('Pasensya na po, hindi ko ma-reach ang server ngayon. Subukan ulit pagkatapos ng ilang sandali.', true);
+        console.error('Chat error:', err);
+    } finally {
+        setInputDisabled(false);
+        document.getElementById('chatInput').focus();
     }
-
-    addMessage(response, true);
-}
-
-function addAppointmentToDashboard(data) {
-    const tableBody = document.getElementById('appointment-table');
-    const newRow = document.createElement('tr');
-
-    newRow.innerHTML = `
-        <td>${data.name}</td>
-        <td style="font-size: 0.8rem; color: var(--text-muted);">${data.email}</td>
-        <td>${data.service}</td>
-        <td>${data.time}</td>
-        <td><span class="status status-pending">New Request</span></td>
-    `;
-
-    // Add animation to new row
-    newRow.style.background = "#fffbeb";
-    tableBody.prepend(newRow);
 }
 
 // Initial Animations
