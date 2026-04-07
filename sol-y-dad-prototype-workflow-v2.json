@@ -1,0 +1,853 @@
+{
+  "name": "Sol. Y. Dad Medical Clinic - Website & FB Support",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "7748ae0d-6bc1-4330-97a5-a6d13e64291f",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "05d65d00-c60c-4a85-aa01-1e21d21c0cd7",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        128,
+        -192
+      ],
+      "webhookId": "7748ae0d-6bc1-4330-97a5-a6d13e64291f",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6eb7bacf-63d7-4a32-a0b3-e64d8360b89e",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "d6581081-9e5b-4e91-abc2-6c1319b901f9",
+              "leftValue": "={{ $json.query['hub.verify_token'] }}",
+              "rightValue": "Sol_Y_Dad_Clinic",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7205aa5c-a0ce-4838-9e17-45d8ef258db9",
+      "name": "If FB Verify",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        368,
+        -288
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "id": "809baa0a-b76c-41a6-9fa7-2de26b2d8b3d",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        576,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Verification failed",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "id": "cc112233-4455-6677-8899-aabbccddeef1",
+      "name": "Respond Verification Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        576,
+        -272
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4506bf7c-137f-4450-9fe4-eda66882afa3",
+              "leftValue": "={{ $json.body.entry[0].messaging[0].message.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3b76aac5-04fb-45c7-8cbd-f4ea883a82cc",
+      "name": "Filter Messages",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "cc112233-4455-6677-8899-aabbccddeef2",
+      "name": "Respond 200 OK (FB)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "SolYDad_chatmemory",
+        "limit": 20,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "user_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Filter Messages').first().json.body.entry[0].messaging[0].sender.id }}"
+            }
+          ]
+        }
+      },
+      "id": "cc112233-4455-6677-8899-aabbccddeef3",
+      "name": "Lookup Patient",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        976,
+        -32
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "7CvdZd2SYeFMCDcv",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=# [PERSONA]\nYou are the friendly, warm clinic secretary at Sol. Y. Dad Medical Clinic.\n\nHOW YOU BEHAVE:\n- Talk like a real, caring clinic staff — natural, conversational, never stiff or robotic.\n- NEVER introduce yourself as an AI, a bot, or an AI secretary. Just respond naturally as clinic staff.\n- NEVER say phrases like \"as said by Dr. Belen\", \"as verbalized by the doctor\", or anything that sounds like you are quoting the doctor. Speak from your own knowledge of the clinic.\n- Vary your greetings and replies — do not use the same template every time.\n- Use the patient's name naturally when you know it. Be genuinely warm.\n- Always respond in Taglish — a natural mix of Filipino and English, the way a friendly clinic staff would really talk.\n\n# [REAL-TIME CONTEXT]\n- Ngayong araw: {{ $now.setZone('Asia/Manila').format('dddd, MMMM D, YYYY') }}\n- Oras ngayon: {{ $now.setZone('Asia/Manila').format('HH:mm') }} PHT\n\n# [PATIENT RECORD]\n- Pangalan: {{ $json.patient_name }}\n- May aktibong appointment?: {{ $json.has_active_appointment }}{{ $json.has_active_appointment === 'YES' ? ' — ' + $json.appointment_details : '' }}\n- Phone number sa file: {{ $json.phone_number || 'wala pa' }}\n\n# [HOW TO HANDLE EACH TYPE OF MESSAGE]\n\n## 1. EMERGENCIES — Pinakamataas na prioridad\nKung ang mensahe ay tungkol sa hirap huminga, seizure, mataas na lagnat ng newborn, hindi na nag-iisip, o malubhang sugat — tumugon agad:\n\"Naku po, ito po ay emergency! Pumunta na po kayo ngayon sa pinakamalapit na ospital o tumawag sa inyong local emergency hotline. Huwag nang mag-antay — mahalaga ang bawat segundo!\"\nHuwag na ipagpatuloy ang ibang pakikipag-usap.\n\n## 2. MAY EXISTING APPOINTMENT NA\nKung ang patient record ay nagpapakita ng active appointment, sabihin nang malambing:\n\"Hi {{ $json.patient_name !== 'New Patient' ? $json.patient_name : 'po' }}! Nakita ko sa aming records na may appointment ka na tayo sa {{ $json.appointment_details }}. Okay lang ba iyon para sa inyo? O gusto mong palitan ng ibang oras?\"\n\n## 3. MGA TANONG TUNGKOL SA CLINIC (Bayad, Schedule, Bakuna, Address, atbp.)\nDALWAYS gamitin ang Google Docs tool bago sumagot ng anumang factual na tanong — fees, schedule ng doktor, available vaccines, address, clinic hours, atbp.\n- Basahin nang mabuti ang dokumento at sagutin lang batay sa nakasulat doon.\n- Huwag mag-imbento o mag-hula ng impormasyon.\n- Kung ang sagot ay WALA sa Google Docs, sabihin nang natural at friendly:\n  \"Hmm, wala po akong exact na impormasyon doon sa ngayon. Pwede po kayong mag-message uli bukas o tumawag sa clinic directly para sa pinaka-updated na detalye.\"\n- HUWAG KAILANMAN sabihin ang anumang katulad ng \"para matawagan ng human secretary\" o ang pagiging AI mo.\n\n## 4. PAGBU-BOOK NG APPOINTMENT\nUnahin munang tanungin kung ano ang dahilan ng pagbisita (chief complaint).\n\n- Hakbang A: Kung walang phone number sa file, tanungin muna ang kanilang mobile number bago kumpirmahin ang oras.\n- Hakbang B: Tanungin kung New Patient o Follow-up.\n- Hakbang C: Mag-alok ng eksaktong TATLONG (3) available na time slots sa hinaharap gamit ang Google Calendar tool. Siguraduhing lahat ng slots ay pagkatapos ng kasalukuyang oras at petsa.\n- Hakbang D: Para sa new patients, ipaalam nang malambing: \"Paalala lang po — mag-arrive po kayo nang 15 minuto bago sa schedule para makapag-fill out ng patient forms dito sa clinic.\"\n\nPagkatapos ng matagumpay na booking:\n- I-save sa Google Calendar\n- Magpadala ng confirmation email gamit ang Gmail tool\n- I-update ang patient record sa Supabase\n\n# [KASALUKUYANG MENSAHE]\n{{ $('Webhook').first().json.body.entry[0].messaging[0].message.text }}\n\nSagutin ngayon:",
+        "options": {}
+      },
+      "id": "f2f221dd-701e-4b4f-acc1-0469b7370696",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1376,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "3794f864-2c28-43fa-bc09-4aeb419f4bdb",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        224
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "jHYTNuOrOKCLjwJU",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Filter Messages').first().json.body.entry[0].messaging[0].sender.id }}",
+        "tableName": "SolYDad_chatmemory"
+      },
+      "id": "a9359c13-11ef-43d1-b20e-88695667e89d",
+      "name": "Postgres Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        1360,
+        224
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "q13xMdRVSphYvqvF",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v25.0/{{ $('Webhook').first().json.body.entry[0].id }}/messages",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "access_token",
+              "value": "=EAICk1l6NqBUBRJgwDWG5pYBHl0WHNtfh5EC4dZCpZBfCWeAzM6hmMZASOMjeosZBYAo6ZCRY5OZAaduJGQfnxxoiUnne1yDuProEufTQsQmWxyGrciLBYyEu5ce9csPvnt3s5cg0BYrtuJrnBohcfHf4hF6EDcrCeiKoUyk4tiGI8hKvxZAjPO4iod04ZCsczMZAdrh7RKPcrMH9FbHz8MiGQYcDeHwZDZD"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    \"messaging_type\": \"RESPONSE\",\n    \"recipient\": {\n      \"id\": $('Filter Messages').first().json.body.entry[0].messaging[0].sender.id\n    },\n    \"message\": {\n      \"text\": $json.output\n    }\n  }\n}}",
+        "options": {}
+      },
+      "id": "842a4483-b742-4cef-b2ae-b3d981eeca9f",
+      "name": "HTTP Request (FB Reply)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1856,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "SolYDad_chatmemory",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $('Filter Messages').first().json.body.entry[0].messaging[0].message.text }}"
+            },
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ $('Filter Messages').first().json.body.entry[0].messaging[0].sender.id }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "user"
+            }
+          ]
+        }
+      },
+      "id": "cd6cd3e5-4b86-4e37-a755-2dcaeb788a31",
+      "name": "Log User Msg (Supabase)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        -160
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "7CvdZd2SYeFMCDcv",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5e1bd17c-6b3a-4467-b5b0-7c1e54e8e19c",
+              "leftValue": "={{ $('Webhook').first().json.body.source }}",
+              "rightValue": "website",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "97e6e5d2-0cb2-4a7b-84a2-15f5d8869c8a",
+      "name": "Is Website?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        640,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5e1bd17c-6b3a-4467-b5b0-7c1e54e8e19c",
+              "leftValue": "={{ $('Webhook').first().json.body.source }}",
+              "rightValue": "website",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a7e6e5d2-0cb2-4a7b-84a2-15f5d8869c8b",
+      "name": "Is Website? (End)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1632,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"output\": \"{{ $json.output }}\"\n}",
+        "options": {}
+      },
+      "id": "b7e6e5d2-0cb2-4a7b-84a2-15f5d8869c8c",
+      "name": "Respond AI Reply",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1856,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "aj.aiautomation16@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aj.aiautomation16@gmail.com"
+        },
+        "returnAll": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Return_All', `Use this tool to check for existing appointments BEFORE booking. Search for events between the requested Start Time and End Time. If this tool returns ANY events, the slot is BUSY. You must tell the patient to choose another time.`, 'boolean') }}",
+        "options": {}
+      },
+      "id": "98daf9a5-5114-478e-9911-a4197b989b4b",
+      "name": "Google_Calendar_Search",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1216,
+        496
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "UhsGgioeZaakI3YQ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "aj.aiautomation16@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aj.aiautomation16@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', `The calendar event ID to update`, 'string') }}",
+        "updateFields": {
+          "sendUpdates": "all"
+        }
+      },
+      "id": "b1d2473d-5236-4811-b7fb-647a45ccae7e",
+      "name": "Google_Calendar_Update",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1696,
+        560
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "UhsGgioeZaakI3YQ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "calendar": {
+          "__rl": true,
+          "value": "aj.aiautomation16@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aj.aiautomation16@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', `The calendar event ID to delete`, 'string') }}",
+        "options": {}
+      },
+      "id": "98f422db-b5c5-4def-b38a-280ebef800d5",
+      "name": "Google_Calendar_Delete",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1520,
+        528
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "UhsGgioeZaakI3YQ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "MANDATORY: Use this tool immediately AFTER a successful Google Calendar booking. Send a confirmation receipt to the patient's email. You must include the appointment date, time, and clinic address. Do not end the chat until this email is sent.",
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', `Patient email address`, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', `Email subject line`, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', `Full email body with appointment details`, 'string') }}",
+        "options": {}
+      },
+      "id": "70feca8d-4ea4-4149-a710-e6c0b80d3953",
+      "name": "Gmail_Receipt_Sender",
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        1744,
+        336
+      ],
+      "webhookId": "58cde6b0-90c5-4d19-9607-aa2dcba25e3f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "O1SxtNFgp8tktuv2",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "aj.aiautomation16@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aj.aiautomation16@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', `Appointment start time in ISO 8601 format`, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', `Appointment end time in ISO 8601 format`, 'string') }}",
+        "useDefaultReminders": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Use_Default_Reminders', `Whether to use default calendar reminders`, 'boolean') }}",
+        "additionalFields": {
+          "attendees": [
+            "={{ $fromAI('attendees0_Attendees', `Patient email address`, 'string') }}"
+          ],
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', `Include patient name, email, phone number, and reason for visit`, 'string') }}",
+          "location": "={{ $fromAI('Location', `the doctor or clinic address`, 'string') }}",
+          "summary": "={{ $fromAI('Summary', `Appointment title e.g. Consultation - Patient Name`, 'string') }}"
+        }
+      },
+      "id": "ceef4b23-a04a-4406-a682-7e366cc6c0fa",
+      "name": "Google_Calendar_Tool",
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1376,
+        544
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "UhsGgioeZaakI3YQ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "SolYDad_chatmemory",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "user_id",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', `The Facebook sender ID`, 'string') }}"
+            },
+            {
+              "fieldId": "role",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', `Role: assistant or user`, 'string') }}"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ $fromAI(\"summary_of_action\") }}"
+            },
+            {
+              "fieldId": "patient_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', `Full name of the patient`, 'string') }}"
+            },
+            {
+              "fieldId": "phone_number",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', `Patient mobile number`, 'string') }}"
+            },
+            {
+              "fieldId": "patient_status",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', `New Patient or Follow-up`, 'string') }}"
+            },
+            {
+              "fieldId": "appointment_date_time",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', `Appointment date and time in ISO 8601`, 'string') }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues7_Field_Value', `Patient email address`, 'string') }}"
+            }
+          ]
+        }
+      },
+      "id": "bc52f8c6-cb40-4000-8b03-07b17023f0a7",
+      "name": "Create a row in Supabase",
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1776,
+        128
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "7CvdZd2SYeFMCDcv",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "documentURL": "1RchcnS7vLncC9Aq54t-ryEW3BiHNVA5EoVJUQQgiB14"
+      },
+      "id": "a688d6bd-7320-452b-981a-2f3d1aca3480",
+      "name": "Google Docs tool",
+      "type": "n8n-nodes-base.googleDocsTool",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        368
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "GZnS81lp0sNSO10Z",
+          "name": "Google Docs account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const records = $input.all();\nconst webhookData = $('Filter Messages').first().json;\n\nlet patientName = '';\nlet phoneNumber = '';\nlet hasActiveAppointment = 'NO';\nlet appointmentDetails = '';\n\nfor (const record of records) {\n  const r = record.json || {};\n  if (!patientName && r.patient_name) patientName = r.patient_name;\n  if (!phoneNumber && r.phone_number) phoneNumber = r.phone_number;\n  if (!appointmentDetails && r.appointment_date_time) {\n    const apptDate = new Date(r.appointment_date_time);\n    if (apptDate > new Date()) {\n      hasActiveAppointment = 'YES';\n      appointmentDetails = r.appointment_date_time;\n    }\n  }\n}\n\nreturn [{\n  json: {\n    body: webhookData.body,\n    query: webhookData.query,\n    headers: webhookData.headers,\n    patient_name: patientName || 'New Patient',\n    phone_number: phoneNumber || '',\n    has_active_appointment: hasActiveAppointment,\n    appointment_details: appointmentDetails\n  }\n}];"
+      },
+      "id": "cc112233-4455-6677-8899-aabbccddeef4",
+      "name": "Build Patient Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        16
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If FB Verify",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Filter Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If FB Verify": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Verification Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Messages": {
+      "main": [
+        [
+          {
+            "node": "Is Website?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Website?": {
+      "main": [
+        [
+          {
+            "node": "Lookup Patient",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 200 OK (FB)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond 200 OK (FB)": {
+      "main": [
+        [
+          {
+            "node": "Lookup Patient",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Patient": {
+      "main": [
+        [
+          {
+            "node": "Build Patient Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Patient Context": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Log User Msg (Supabase)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Is Website? (End)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Website? (End)": {
+      "main": [
+        [
+          {
+            "node": "Respond AI Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request (FB Reply)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google_Calendar_Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google_Calendar_Update": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google_Calendar_Delete": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail_Receipt_Sender": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google_Calendar_Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a row in Supabase": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Docs tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "timezone": "Asia/Manila"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {}
+}
