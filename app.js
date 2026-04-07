@@ -89,14 +89,22 @@ async function sendMessage() {
     showTypingIndicator();
 
     try {
+        const params = new URLSearchParams();
+        params.append('source', 'website');
+        params.append('message', text);
+        params.append('user_id', SESSION_ID);
+        // Mock FB structure for n8n compatibility
+        params.append('entry', JSON.stringify([{
+            messaging: [{
+                sender: { id: SESSION_ID },
+                message: { text: text }
+            }]
+        }]));
+
         const response = await fetch(N8N_WEBHOOK_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                source: 'website',
-                message: text,
-                session_id: SESSION_ID
-            })
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params
         });
 
         removeTypingIndicator();

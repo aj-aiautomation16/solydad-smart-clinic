@@ -131,7 +131,23 @@
       "parameters": {
         "respondWith": "text",
         "options": {
-          "responseCode": 200
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS, GET"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
         }
       },
       "id": "cc112233-4455-6677-8899-aabbccddeef2",
@@ -362,7 +378,24 @@
       "parameters": {
         "respondWith": "json",
         "responseBody": "={\n  \"output\": \"{{ $json.output }}\"\n}",
-        "options": {}
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS, GET"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
       },
       "id": "b7e6e5d2-0cb2-4a7b-84a2-15f5d8869c8c",
       "name": "Respond AI Reply",
