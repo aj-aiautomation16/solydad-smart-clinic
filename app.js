@@ -13,7 +13,7 @@ function toggleChat() {
     const chatWindow = document.getElementById('chatWindow');
     const isVisible = chatWindow.style.display === 'flex';
     chatWindow.style.display = isVisible ? 'none' : 'flex';
-    
+
     if (!isVisible && chatState === 'greeting') {
         scrollToBottom();
     }
@@ -23,7 +23,7 @@ function toggleDashboard() {
     const homeView = document.getElementById('home-view');
     const dashView = document.getElementById('dashboard-view');
     const navLinks = document.querySelector('.nav-links');
-    
+
     if (currentView === 'home') {
         homeView.style.display = 'none';
         dashView.style.display = 'block';
@@ -59,12 +59,12 @@ function addMessage(text, isAi = false) {
 function sendMessage() {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
-    
+
     if (!text) return;
-    
+
     addMessage(text, false);
     input.value = '';
-    
+
     // Simulate AI Thinking
     setTimeout(() => {
         processAiResponse(text);
@@ -73,31 +73,31 @@ function sendMessage() {
 
 function processAiResponse(userInput) {
     let response = "";
-    
+
     switch (chatState) {
         case 'greeting':
             response = "Ano po ang pangalan nila? Para po mailista ko sa ating record.";
             chatState = 'waitingForName';
             break;
-            
+
         case 'waitingForName':
             patientData.name = userInput;
             response = `Salamat, ${patientData.name}! Ano po ang email address ninyo? Ito po ay para sa inyong appointment receipt.`;
             chatState = 'waitingForEmail';
             break;
-            
+
         case 'waitingForEmail':
             patientData.email = userInput;
             response = `Got it! Anong serbisyo po ang kailangan niyo? (General Medicine, Pediatrics, OB-GYN, or Laboratory)`;
             chatState = 'waitingForService';
             break;
-            
+
         case 'waitingForService':
             patientData.service = userInput;
             response = "Sige po. Kailan po ninyo balak pumunta? Pwede po kaming mag-set ng slot para sa inyo bukas ng 9:00 AM. Okay po ba sa inyo?";
             chatState = 'waitingForTime';
             break;
-            
+
         case 'waitingForTime':
             if (userInput.toLowerCase().includes('oo') || userInput.toLowerCase().includes('ok') || userInput.toLowerCase().includes('yes')) {
                 patientData.time = "Tomorrow, 09:00 AM";
@@ -108,23 +108,23 @@ function processAiResponse(userInput) {
                 response = "Ah, sige po. Ano po ang preferred time ninyo?";
             }
             break;
-            
+
         case 'confirmed':
             response = "Maraming salamat po! Ingat po sa biyahe papunta dito sa Sol. Y. Dad Medical Clinic.";
             chatState = 'end';
             break;
-            
+
         default:
             response = "Mag-message lang po uli kayo kung may kailangan pa po kayo.";
     }
-    
+
     addMessage(response, true);
 }
 
 function addAppointmentToDashboard(data) {
     const tableBody = document.getElementById('appointment-table');
     const newRow = document.createElement('tr');
-    
+
     newRow.innerHTML = `
         <td>${data.name}</td>
         <td style="font-size: 0.8rem; color: var(--text-muted);">${data.email}</td>
@@ -132,7 +132,7 @@ function addAppointmentToDashboard(data) {
         <td>${data.time}</td>
         <td><span class="status status-pending">New Request</span></td>
     `;
-    
+
     // Add animation to new row
     newRow.style.background = "#fffbeb";
     tableBody.prepend(newRow);
